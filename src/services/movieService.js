@@ -2,9 +2,14 @@ import movieModel from "../database/models/movie.js";
 
 export const getMoviesService = async (page, perPage, title) => {
   const startIndex = (page - 1) * perPage;
-  const totalMovies = await movieModel
-    .countDocuments({ title: { $regex: title, $options: "i" } })
-    .exec();
+  let totalMovies;
+  if (title) {
+    totalMovies = await movieModel
+      .countDocuments({ title: { $regex: title, $options: "i" } })
+      .exec();
+  } else {
+    totalMovies = await movieModel.countDocuments({}).exec();
+  }
 
   console.log('Movies with "', title, '" in title: ', totalMovies);
   const result = {
@@ -17,12 +22,17 @@ export const getMoviesService = async (page, perPage, title) => {
   result.paging.page = page;
   result.paging.pages = Math.ceil(totalMovies / perPage);
 
-  result.data = await movieModel
-    .find({ title: { $regex: title, $options: "i" } }, null, {
-      sort: { _id: -1 },
-    })
-    .skip(startIndex)
-    .limit(perPage);
+  if (title) {
+    result.data = await movieModel
+      .find({ title: { $regex: title, $options: "i" } }, null, {
+        sort: { _id: -1 },
+      })
+      .skip(startIndex)
+      .limit(perPage);
+  } else {
+    result.data = await movieModel.find({}).skip(startIndex).limit(perPage);
+  }
+
   console.log("Total:", result.data.length);
   return result;
 };

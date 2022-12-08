@@ -1,3 +1,10 @@
+/****************************************************************************** ***
+ * ITE5315 – Project
+ * I declare that this assignment is my own work in accordance with Humber Academic Policy.
+ * No part of this assignment has been copied manually or electronically from any other source
+ * (including web sites) or distributed to other students. *
+ * Group member Name: Rutvik Joshi Student IDs: N01475751 Date: 30-Nov-2022
+ ****************************************************************************** ***/
 import {
   getMoviesService,
   getMovieService,
@@ -5,13 +12,52 @@ import {
   deleteMovieByIdService,
   addNewMovieService,
 } from "../services/movieService.js";
-import dotenv from "dotenv";
+import { validateFormUI } from "../utils/validation.js";
 
-dotenv.config();
+export const getFormUI = async (req, res) => {
+  const query = req.query ?? {};
+  let errors = [];
+  let fields = null;
+  let hasError = false;
+  let prev = null;
+  let next = null;
+  let movies = [];
+  const renderPage = "ui-form";
+
+  // validate the query params. Query params are holding the value from the frontend form.
+  if (query.submit) errors = validateFormUI(query);
+
+  if (errors.length > 0) {
+    fields = null;
+    hasError = true;
+  } else if (query.submit) {
+    errors = null;
+    fields = query;
+    hasError = false;
+
+    const { data, paging } = await getMoviesService(
+      parseInt(query.page),
+      parseInt(query.perPage),
+      query.title
+    );
+
+    prev = query.page == 1 ? null : +query.page - 1;
+    next = +query.page < (paging.pages ?? 1) ? +query.page + 1 : null;
+    movies = data.map((movie) => ({
+      title: movie.title,
+      rating: movie.imdb?.rating ?? "Not Mentioned",
+      votes: movie.imdb?.votes ?? "Not Mentioned",
+      type: movie.type ?? "Not Mentioned",
+      genres: movie.genres ?? "Not Mentioned",
+      plot: movie.plot ?? "Not Mentioned",
+      cast: movie.cast ?? "Not Mentioned",
+    }));
+  }
+
+  res.render(renderPage, { errors, fields, hasError, prev, next, movies });
+};
 
 export const getMovies = async (req, res) => {
-  console.log("getMovies: ");
-
   try {
     res
       .status(200)
